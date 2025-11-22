@@ -26,30 +26,44 @@ st.markdown("""
 # --- Sidebar: Configurações ---
 st.sidebar.title("⚙️ Configuração")
 
-# Credenciais (Segurança: Tenta ler de secrets, senão pede input)
+# Credenciais
 try:
-    api_key = st.secrets["API_KEY"]
-    api_secret = st.secrets["API_SECRET"]
-    st.sidebar.success("Credenciais carregadas dos Segredos!")
-    use_secrets = True
+    # Tenta pegar secrets específicos para a exchange selecionada seria o ideal, 
+    # mas aqui mantemos simples
+    api_key = st.secrets.get("API_KEY", "")
+    api_secret = st.secrets.get("API_SECRET", "")
+    if api_key:
+        st.sidebar.success("Credenciais carregadas!")
 except:
-    st.sidebar.warning("Segredos não encontrados.")
+    api_key = ""
+    api_secret = ""
+
+if not api_key:
+    st.sidebar.info("Insira chaves para operar ou deixe em branco para ver dados públicos (se permitido).")
     api_key = st.sidebar.text_input("API Key", type="password")
     api_secret = st.sidebar.text_input("API Secret", type="password")
-    use_secrets = False
 
-exchange_name = st.sidebar.selectbox("Exchange", ["binance", "bingx"])
+# Adicionado 'binanceus' para quem roda no servidor dos EUA
+exchange_name = st.sidebar.selectbox("Exchange", ["binance", "binanceus", "bingx"])
 env_type = st.sidebar.radio("Ambiente", ["Testnet", "Real"], index=0)
 is_testnet = True if env_type == "Testnet" else False
 
-symbol = st.sidebar.text_input("Símbolo", "BTC/USDT")
+# Nota sobre símbolos
+if exchange_name == 'binanceus':
+    default_symbol = "BTC/USD" # Binance US usa USD, não USDT em muitos pares spot
+    market_type_default = 'spot' # Binance US tem restrições em futuros
+else:
+    default_symbol = "BTC/USDT"
+    market_type_default = 'swap' # Futuros perpétuos
+
+symbol = st.sidebar.text_input("Símbolo", default_symbol)
 timeframe = st.sidebar.selectbox("Timeframe", ["1m", "5m", "15m", "1h", "4h", "1d"], index=3)
 
 # Inicialização da Exchange
-if api_key and api_secret:
-    exchange = ExchangeManager(exchange_name, api_key, api_secret, testnet=is_testnet)
-else:
-    exchange = ExchangeManager(exchange_name, testnet=is_testnet) # Modo público apenas
+exchange = ExchangeManager(exchange_name, api_key, api_secret, testnet=is_testnet, market_type=market_type_default)
+
+# --- Tabs ---
+# (O restante do código das abas permanece igual...)
 
 # --- Tabs ---
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 Trade & Estratégias", "🧠 AI / GRU", "📊 Backtest", "🧪 Otimização", "📡 Execução"])
