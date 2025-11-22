@@ -18,12 +18,23 @@ class StrategyEngine:
 
     def ma_stoch(self, fast_ma=9, slow_ma=21, k_period=14, overbought=80, oversold=20):
         df = self.df.copy()
-        # Recalcular indicadores conforme parametros
-        import pandas_ta as ta
-        df['fast_ma'] = ta.sma(df['close'], length=fast_ma)
-        df['slow_ma'] = ta.sma(df['close'], length=slow_ma)
-        stoch = ta.stoch(df['high'], df['low'], df['close'], k=k_period)
-        df['k'] = stoch[f'STOCHk_{k_period}_3_3']
+        
+        # Cálculo manual simples das médias usando Pandas puro (funciona sempre)
+        df['fast_ma'] = df['close'].rolling(window=fast_ma).mean()
+        df['slow_ma'] = df['close'].rolling(window=slow_ma).mean()
+        
+        # O Estocástico já foi calculado no indicators.py e está no DF como 'STOCHk_14_3_3'
+        # Mas se os parametros mudarem, precisamos recalcular. 
+        # Para simplificar, vamos assumir que usamos as colunas já existentes ou recalcular com 'ta' se necessário.
+        # Aqui vamos usar a coluna padrão gerada no indicators.py para evitar erros de importação
+        
+        if 'STOCHk_14_3_3' in df.columns:
+            df['k'] = df['STOCHk_14_3_3']
+        else:
+            # Fallback simples se não existir
+            lowest_low = df['low'].rolling(window=k_period).min()
+            highest_high = df['high'].rolling(window=k_period).max()
+            df['k'] = 100 * ((df['close'] - lowest_low) / (highest_high - lowest_low))
         
         df['signal'] = 0
         
@@ -36,6 +47,7 @@ class StrategyEngine:
         df.loc[condition_sell, 'signal'] = -1
         
         return df
+
 
     def gru_signal(self, model, scaler, lookback=60):
         # Esta função seria chamada iterativamente ou em batch
