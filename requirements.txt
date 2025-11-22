@@ -1,0 +1,10 @@
+streamlit
+ccxt
+pandas
+numpy
+pandas_ta
+plotly
+scikit-learn
+tensorflow
+optuna
+matplotlib
